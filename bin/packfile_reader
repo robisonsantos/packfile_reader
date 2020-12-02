@@ -10,21 +10,22 @@ opts = Optimist::options do
     By default, the script will only report the object ids, their type and their deflated sizes.
     You can also make the script expand the content of the objects in the local directory or a directory
     of your choice.
- 
+
     Usage:
       packfile_reader [options] <packfile>
     where [options] are:
   EOS
- 
+
   opt :headers_only, 'Display only the headers of the packfile'
   opt :no_headers, 'Skip displaying the headers of the packfile'
   opt :filter_by_ids, 'Comma separated list of object ids to look for', :default => 'any', :short => '-i', :type => String
   opt :expand_objects, 'Whether to expand objects data', :default => false, :short => '-e'
   opt :output_dir, 'Directory to store the expanded objects', :default => '.', :short => '-o', :type => String
+  opt :verbose, 'Log some debugging informaiton to stderr', :default => false, :short => '-v'
 end
- 
+
 (puts "You must inform a single packfile, found #{ARGV.size}"; exit 1) if ARGV.size > 1 or ARGV.empty?
- 
+
 packfile = ARGV.first
 (puts 'Packfile not found'; exit 2) unless File.exist?(packfile)
 
@@ -50,13 +51,14 @@ File.open(packfile, 'rb') do |f|
   entries_processed = 0
   limit = objects_to_find == :any ? header.n_entries : objects_to_find.size
   (0...limit).each do
-    entry = PackfileReader::PackfileEntry.next_entry(f, objects_to_find) do |c,u,id|
+    entry = PackfileReader::PackfileEntry.next_entry(f, objects_to_find, opts[:verbose]) do |c,u,id|
       if opts[:expand_objects]
         dir = opts[:output_dir]
         File.open(File.join(dir, "#{id}.txt"), 'w') {|o| o.write u}
       end
     end
 
-    puts "#{entry.id}\t#{entry.type}\t#{entry.size}"
+    timestamp = opts[:verbose] ? "[#{Time.now}] " : ''
+    puts "\u001b[0K#{timestamp}#{entry.id}\t#{entry.type}\t#{entry.size}"
   end
 end

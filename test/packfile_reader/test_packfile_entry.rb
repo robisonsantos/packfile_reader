@@ -40,11 +40,18 @@ describe PackfileReader::PackfileEntry do
   end
 
   it 'passes data to block' do
-    PackfileReader::PackfileEntry.next_entry(@packfile, 
+    PackfileReader::PackfileEntry.next_entry(@packfile,
                                             ['5297f8f21ad868d9eb6a9c01ad09a9d186177047']) do |compressed, uncompressed, id|
       assert_equal '5297f8f21ad868d9eb6a9c01ad09a9d186177047', id
       assert_equal '# test-git', uncompressed
       assert_equal [120, 156, 83, 86, 40, 73, 45, 46, 209, 77, 207, 44, 1, 0, 17, 16, 3, 117], compressed.bytes
     end
+  end
+
+  it 'validates the object ids' do
+    err = assert_raises RuntimeError do
+      PackfileReader::PackfileEntry.next_entry(@packfile, ['something_invalid'])
+    end
+    assert_equal 'Object id must be a valid sha1', err.message
   end
 end

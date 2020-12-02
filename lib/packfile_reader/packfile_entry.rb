@@ -17,7 +17,9 @@ module PackfileReader
 
     # Accepts a block that will receive the compressed data, uncompressed data and
     # the computed object id
-    def self.next_entry(packfile_io, objects_to_find=:any)
+    def self.next_entry(packfile_io, objects_to_find=:any, log_verbose=false)
+      raise 'Object id must be a valid sha1' unless objects_to_find == :any || objects_to_find.all? {|id| /^[0-9a-f]{40}$/.match? id }
+
       loop do
         return nil if packfile_io.eof?
 
@@ -27,14 +29,18 @@ module PackfileReader
         size = hunk.size
         offset = hunk.offset_size
 
+        # Clean the current line before printing the message
+        $stderr.puts "\u001b[0K>>>> Processing new entry [#{type}]" if log_verbose
         while hunk.continuation?
           hunk = PackfileReader::Hunk.new_without_type(packfile_io)
           size = (hunk.size << offset) | size # Data size is a combination of all hunk sizes
           offset += hunk.offset_size
         end
 
-        compressed_data, uncompressed_data = find_data(packfile_io)
+        compressed_data, uncompressed_data = find_data(packfile_io, log_verbose)
         object_id = compute_id(type, size, uncompressed_data)
+
+        type = "#{type} [CORRUPTED] " if uncompressed_data.nil?
 
         if objects_to_find == :any || objects_to_find.member?(object_id)
           yield compressed_data, uncompressed_data, object_id if block_given?
@@ -44,7 +50,7 @@ module PackfileReader
     end
 
     private
-    def self.find_data(packfile_io)
+    def self.find_data(packfile_io, log_verbose)
       data_header = find_zlib_data_header(packfile_io)
 
       # since we don't have the index file that accompanies pack files
@@ -54,11 +60,16 @@ module PackfileReader
       compressed_data = data_header
       compressed_data += packfile_io.read(1)
 
+      bytes_read = 1
       begin
         uncompressed_data = Zlib.inflate(compressed_data)
       rescue Zlib::BufError
         compressed_data += packfile_io.read(1)
+        bytes_read += 1
+        $stderr.print " .... retrying on data gathering [#{bytes_read}] bytes read\r" if log_verbose
         retry
+      rescue Zlib::DataError
+        uncompressed_data = nil
       end
 
       [compressed_data, uncompressed_data]
@@ -92,7 +103,7 @@ module PackfileReader
       end
 
       return '000' if header_type.empty?
-      
+
       header = "#{header_type} #{size}\0"
       store = "#{header}#{uncompressed_data}"
       Digest::SHA1.hexdigest(store)

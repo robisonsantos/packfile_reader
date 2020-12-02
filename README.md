@@ -39,7 +39,8 @@ where [options] are:
   -i, --filter-by-ids=<s>    Comma separated list of object ids to look for (default: any)
   -e, --expand-objects       Whether to expand objects data
   -o, --output-dir=<s>       Directory to store the expanded objects (default: .)
-  -v, --version              Print version and exit
+  -v, --verbose              Log some debugging informaiton to stderr
+  -r, --version              Print version and exit
   -l, --help                 Show this message
 
 ```
@@ -114,5 +115,18 @@ $ cat /tmp/5297f8f21ad868d9eb6a9c01ad09a9d186177047.txt
 # test-git%
 ```
 
+### Debugging information
+
+Passing `--verbose` to the command will add some debugging information to the output as well as the timestamp when the entry got processed at the beginning of the entry line.
+
+```
+packfile_reader --no-headers -verbose pack.sample 
+```
+
+```
+[2020-12-01 21:24:43 -0800] 96438dd1e26e6963fa65be0012e8f6e84209bc5d	OBJ_COMMIT	653
+[2020-12-01 21:24:43 -0800] 5297f8f21ad868d9eb6a9c01ad09a9d186177047	OBJ_BLOB	10
+[2020-12-01 21:24:44 -0800] bf195faf9d23ce0615cdefd2b746a077ef82f03f	OBJ_TREE	37
+```
 # References
 -  http://shafiul.github.io/gitbook/7_the_packfile.html
