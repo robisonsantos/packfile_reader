@@ -6,7 +6,7 @@ Git packs up several of "loose" objects into a single binary file called a “pa
 
 The `.idx` file contains offsets for all the objects in the `.pack` file, so it is easier to find the content you are looking for on the packfile.
 
-When we have both files, we can use `git verify-pack' command to read the content and metadata about the objects in the packfile, but sometimes we only have the `.pack` file, and in this case `git` is not really helpful.
+When we have both files, we can use `git verify-pack` command to read the content and metadata about the objects in the packfile, but sometimes we only have the `.pack` file, and in this case `git` is not really helpful.
 
 ![packfile](packfile-format.png?raw=true "Packfile Format")
 
