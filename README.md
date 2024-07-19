@@ -39,10 +39,10 @@ where [options] are:
   -i, --filter-by-ids=<s>    Comma separated list of object ids to look for (default: any)
   -e, --expand-objects       Whether to expand objects data
   -o, --output-dir=<s>       Directory to store the expanded objects (default: .)
+  -w, --window-size=<i>      Size of the window (in bytes) to use when looking for objects (default: 10000)
   -v, --verbose              Log some debugging informaiton to stderr
   -r, --version              Print version and exit
   -l, --help                 Show this message
-
 ```
 
 ## Example:
@@ -128,5 +128,14 @@ packfile_reader --no-headers -verbose pack.sample
 [2020-12-01 21:24:43 -0800] 5297f8f21ad868d9eb6a9c01ad09a9d186177047	OBJ_BLOB	10
 [2020-12-01 21:24:44 -0800] bf195faf9d23ce0615cdefd2b746a077ef82f03f	OBJ_TREE	37
 ```
+
+# Development
+
+## Testing
+
+```
+rake test
+```
+
 # References
 -  http://shafiul.github.io/gitbook/7_the_packfile.html

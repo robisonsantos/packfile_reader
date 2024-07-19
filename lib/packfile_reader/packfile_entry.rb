@@ -16,8 +16,9 @@ module PackfileReader
     ]
 
     # Accepts a block that will receive the compressed data, uncompressed data and
-    # the computed object id
-    def self.next_entry(packfile_io, objects_to_find=:any, log_verbose=false)
+    # the computed object id. Window size is the amount of bytes to read at once
+    # while searching for the compressed data
+    def self.next_entry(packfile_io, objects_to_find=:any, log_verbose=false, window_size=10_000)
       raise 'Object id must be a valid sha1' unless objects_to_find == :any || objects_to_find.all? {|id| /^[0-9a-f]{40}$/.match? id }
 
       loop do
@@ -37,7 +38,7 @@ module PackfileReader
           offset += hunk.offset_size
         end
 
-        compressed_data, uncompressed_data = find_data(packfile_io, log_verbose)
+        compressed_data, uncompressed_data = find_data(packfile_io, log_verbose, window_size)
         object_id = compute_id(type, size, uncompressed_data)
 
         type = "#{type} [CORRUPTED] " if uncompressed_data.nil?
@@ -50,27 +51,34 @@ module PackfileReader
     end
 
     private
-    def self.find_data(packfile_io, log_verbose)
+    def self.find_data(packfile_io, log_verbose, window_size)
       data_header = find_zlib_data_header(packfile_io)
 
       # since we don't have the index file that accompanies pack files
       # we need to use brute force to find where the compressed data ends
-      # to do that, we go byte by byte and try to deflate the data, when
+      # to do that, we go <window_size> bytes by <window_size> bytes and try to deflate the data, when
       # that succeedes, we know we go it all
       compressed_data = data_header
-      compressed_data += packfile_io.read(1)
+      compressed_data += packfile_io.read(window_size)
 
-      bytes_read = 1
+      bytes_read = compressed_data.size
       begin
         uncompressed_data = Zlib.inflate(compressed_data)
       rescue Zlib::BufError
-        compressed_data += packfile_io.read(1)
-        bytes_read += 1
+        compressed_data += packfile_io.read(window_size)
+        bytes_read = compressed_data.size
         $stderr.print " .... retrying on data gathering [#{bytes_read}] bytes read\r" if log_verbose
         retry
       rescue Zlib::DataError
         uncompressed_data = nil
       end
+
+      $stderr.puts " .... data read [#{bytes_read}] bytes" if log_verbose
+      $stderr.print " .... repositioning file pointer to the end of current compressed data\r" if log_verbose
+      compressed_data = Zlib.deflate(uncompressed_data) if uncompressed_data
+
+      # reposition the file pointer to end of compressed data
+      packfile_io.seek(packfile_io.pos - (bytes_read - compressed_data.size))
 
       [compressed_data, uncompressed_data]
     end

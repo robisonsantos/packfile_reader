@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'packfile_reader'
-  s.version = '0.0.2'
+  s.version = '0.0.3'
   s.executables << 'packfile_reader'
   s.date = '2020-11-30'
   s.summary = 'Parses git packfiles without the help of idx companion'
@@ -11,5 +11,5 @@ Gem::Specification.new do |s|
   s.test_files = s.files.select { |p| p =~ /^test\/test_*.rb/ }
   s.homepage = 'https://github.com/robisonsantos/packfile_reader'
   s.license = 'MIT'
-  s.add_dependency 'optimist', '~> 3.0.1'
+  s.add_dependency 'optimist', '~> 3.1.0'
 end

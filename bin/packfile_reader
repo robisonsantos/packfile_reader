@@ -4,7 +4,7 @@ require 'optimist'
 require 'packfile_reader'
 
 opts = Optimist::options do
-  version "v0.0.1 (c) 2020 Robison WR Santos"
+  version "v0.0.2 (c) 2020 Robison WR Santos"
   banner <<~EOS
     This tool is used to parse and extract data from git packfiles without a .idx file.
     By default, the script will only report the object ids, their type and their deflated sizes.
@@ -21,6 +21,7 @@ opts = Optimist::options do
   opt :filter_by_ids, 'Comma separated list of object ids to look for', :default => 'any', :short => '-i', :type => String
   opt :expand_objects, 'Whether to expand objects data', :default => false, :short => '-e'
   opt :output_dir, 'Directory to store the expanded objects', :default => '.', :short => '-o', :type => String
+  opt :window_size, 'Size of the window (in bytes) to use when looking for objects', :default => 10_000, :short => '-w', :type => Integer
   opt :verbose, 'Log some debugging informaiton to stderr', :default => false, :short => '-v'
 end
 
@@ -51,7 +52,7 @@ File.open(packfile, 'rb') do |f|
   entries_processed = 0
   limit = objects_to_find == :any ? header.n_entries : objects_to_find.size
   (0...limit).each do
-    entry = PackfileReader::PackfileEntry.next_entry(f, objects_to_find, opts[:verbose]) do |c,u,id|
+    entry = PackfileReader::PackfileEntry.next_entry(f, objects_to_find, opts[:verbose], opts[:window_size]) do |c,u,id|
       if opts[:expand_objects]
         dir = opts[:output_dir]
         File.open(File.join(dir, "#{id}.txt"), 'w') {|o| o.write u}
